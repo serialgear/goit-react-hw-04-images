@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { animateScroll as scroll } from 'react-scroll';
 
 import { ToastContainer, toast } from 'react-toastify';
@@ -12,37 +12,26 @@ import { Button } from './Button/Button';
 
 import { Text } from './App.styled';
 
-class App extends React.Component {
-  state = {
-    images: [],
-    input: '',
-    page: 1,
-    loading: false,
-    showLoadMore: false,
-  };
+const App = () => {
+  const [images, setImages] = useState([]);
+  const [input, setInput] = useState('');
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [visibleLoadMore, setVisibleLoadMore] = useState(false);
 
-  componentDidMount() {
-    this.setState({ images: null });
-  }
-
-  async componentDidUpdate(_, prevState) {
-    if (
-      prevState.input !== this.state.input ||
-      prevState.page !== this.state.page
-    ) {
+  useEffect(() => {
+    if (!input) {
+      return;
+    }
+    async function fetchData() {
       try {
-        this.setState({ loading: true, showLoadMore: false });
+        setLoading(true);
 
-        const foundImages = await fetchImages(
-          this.state.input,
-          this.state.page
-        );
+        const foundImages = await fetchImages(input, page);
 
-        this.setState(prevState => ({
-          images: [...prevState.images, ...foundImages.hits],
-          loading: false,
-          showLoadMore: this.state.images.length !== foundImages.totalHits,
-        }));
+        setImages(prevImages => [...prevImages, ...foundImages.hits]);
+        setLoading(false);
+        setVisibleLoadMore(!(page * 12 >= foundImages.totalHits));
 
         if (foundImages.hits.length === 0) {
           toast.warning('No pictures with this title');
@@ -53,37 +42,35 @@ class App extends React.Component {
         toast.error('Something went wrong. Try again later.');
       }
     }
+    fetchData();
+  }, [input, page]);
+
+  function handleFormSubmit(input) {
+    setImages([]);
+    setInput(input);
+    setPage(1);
   }
 
-  handleFormSubmit = input => {
-    this.setState({ input, page: 1, images: [] });
-  };
-
-  loadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  function loadMore() {
+    setPage(prevPage => prevPage + 1);
     scroll.scrollToBottom();
-  };
-
-  render() {
-    const { input, loading, images, showLoadMore } = this.state;
-    return (
-      <>
-        <Searchbar onSubmit={this.handleFormSubmit} />
-
-        {!input && <Text>Enter image name, please!</Text>}
-
-        {images && <ImageGallery images={images} />}
-
-        {loading && <Loader loading={loading} />}
-
-        {showLoadMore && <Button onClick={this.loadMore} />}
-
-        <ToastContainer autoClose={3000} theme="colored" />
-      </>
-    );
   }
-}
+
+  return (
+    <>
+      <Searchbar onSubmit={handleFormSubmit} />
+
+      {!input && <Text>Enter image name, please!</Text>}
+
+      {images && <ImageGallery images={images} />}
+
+      {loading && <Loader loading={loading} />}
+
+      {visibleLoadMore && <Button onClick={loadMore} />}
+
+      <ToastContainer autoClose={3000} theme="colored" />
+    </>
+  );
+};
 
 export default App;
