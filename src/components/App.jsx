@@ -66,7 +66,7 @@ const App = () => {
 
       {loading && <Loader loading={loading} />}
 
-      {visibleLoadMore && <Button onClick={loadMore} />}
+      {visibleLoadMore && !loading && <Button onClick={loadMore} />}
 
       <ToastContainer autoClose={3000} theme="colored" />
     </>
